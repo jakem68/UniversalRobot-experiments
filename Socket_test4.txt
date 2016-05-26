@@ -1,0 +1,57 @@
+ Program
+   BeforeStart
+     Script: RQ_2FG_Activate_script.script
+     socket_ip≔"192.168.2.14"
+     socket_port≔30000
+     socket_name≔"test"
+     request≔1
+     var_1≔socket_open(socket_ip,socket_port, socket_name)
+     MoveJ
+       Waypoint_2
+     Loop var_1≟ False 
+       var_1≔socket_open(socket_ip, socket_port, socket_name)
+       Wait: 0.5
+     MoveJ
+       Waypoint_1
+     p_origin≔get_actual_tcp_pose()
+   SubP_RQ_2FG_Open
+     Position_open≔0
+     Speed_open≔255
+     Force_open≔255
+     Script: RQ_2FG_Open_script.script
+   SubP_RQ_2FG_Close
+     Position_close≔255
+     Speed_close≔255
+     Force_close≔255
+     Script: RQ_2FG_Close_script.script
+   Robot Program
+     socket_send_string(request, socket_name)
+     'Wait: 1.0'
+     var_2≔socket_read_ascii_float(5, socket_name)
+     'Loop var_2[0]≟0'
+     If var_2[0]≠0
+       beginx≔-var_2[1]
+       beginz≔-var_2[2]
+       naaldafstand≔-var_2[3]
+       nrnaalden≔var_2[4]
+       graden≔var_2[5]
+       ctr1≔0
+       p_beginrel≔p[beginx, 0, beginz, 0, 0, 0]
+       p_nextx≔p[naaldafstand,0 ,0 ,0 ,0 ,0]
+       p_begin≔pose_trans(p_origin, p_beginrel)
+       p_n≔p_begin
+       MoveL
+         p_begin
+       Loop ctr1<nrnaalden
+         MoveL
+           p_n
+         p_cur≔get_actual_tcp_pose()
+         p_n≔pose_trans(p_cur,p_nextx)
+         Wait: 1.0
+         ctr1≔ctr1+1
+       MoveL
+         Waypoint_1
+       MoveJ
+         Waypoint_2
+       'Call SubP_RQ_2FG_Open'
+       'Call SubP_RQ_2FG_Close'

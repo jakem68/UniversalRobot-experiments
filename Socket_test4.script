@@ -1,0 +1,227 @@
+def Socket_test4():
+  modbus_add_signal("192.168.2.13", 255, 1, 3, "Position_Req")
+  modbus_set_signal_update_frequency("Position_Req", 10)
+  modbus_add_signal("192.168.2.13", 255, 2, 3, "Speed_Force_Req")
+  modbus_set_signal_update_frequency("Speed_Force_Req", 10)
+  modbus_add_signal("192.168.2.13", 255, 2, 2, "Position_Status")
+  modbus_set_signal_update_frequency("Position_Status", 10)
+  modbus_add_signal("192.168.2.13", 255, 8, 1, "Activate")
+  modbus_set_signal_update_frequency("Activate", 10)
+  modbus_add_signal("192.168.2.13", 255, 11, 1, "Go_to_Requested")
+  modbus_set_signal_update_frequency("Go_to_Requested", 10)
+  modbus_add_signal("192.168.2.13", 255, 12, 1, "Auto_Release")
+  modbus_set_signal_update_frequency("Auto_Release", 10)
+  modbus_add_signal("192.168.2.13", 255, 11, 0, "Action_Status")
+  modbus_set_signal_update_frequency("Action_Status", 10)
+  modbus_add_signal("192.168.2.13", 255, 12, 0, "Gripper_Status1")
+  modbus_set_signal_update_frequency("Gripper_Status1", 10)
+  modbus_add_signal("192.168.2.13", 255, 13, 0, "Gripper_Status2")
+  modbus_set_signal_update_frequency("Gripper_Status2", 10)
+  modbus_add_signal("192.168.2.13", 255, 14, 0, "Obj_Det_Status1")
+  modbus_set_signal_update_frequency("Obj_Det_Status1", 10)
+  modbus_add_signal("192.168.2.13", 255, 15, 0, "Obj_Det_Status2")
+  modbus_set_signal_update_frequency("Obj_Det_Status2", 10)
+  set_standard_analog_input_domain(0, 1)
+  set_standard_analog_input_domain(1, 1)
+  set_tool_analog_input_domain(0, 1)
+  set_tool_analog_input_domain(1, 1)
+  set_analog_outputdomain(0, 0)
+  set_analog_outputdomain(1, 0)
+  set_tool_voltage(0)
+  modbus_set_runstate_dependent_choice("Position_Req",0)
+  modbus_set_runstate_dependent_choice("Speed_Force_Req",0)
+  modbus_set_runstate_dependent_choice("Activate",0)
+  modbus_set_runstate_dependent_choice("Go_to_Requested",0)
+  modbus_set_runstate_dependent_choice("Auto_Release",0)
+  set_tcp(p[2.5E-4,0.055,0.262,0.0,0.0,0.0])
+  set_payload(0.9)
+  set_gravity([0.0, 0.0, 9.82])
+  global Fomeco_frame=p[0.09997428118087748,-0.2999996747824126,0.05073750718192673,2.205410715844017,2.2283813949593845,-0.006122385521015125]
+  global Point_9=p[0.5457606694992159,0.31308213175273436,0.18524704903244102,-0.016366141429730717,3.1395891674500707,-0.01134324920016673]
+  global buis_top=p[0.5457606694992159,0.31308213175273436,0.18524704903244102,3.133408639047911,0.016133770689594436,0.0030481052910232187]
+  def SubP_RQ_2FG_Open():
+    global Position_open=0
+    global Speed_open=255
+    global Force_open=255
+    #Allocation of modbus output registers with the desired settings
+    out_reg2_open = Speed_open * 256 + Force_open
+    modbus_set_output_register("Speed_Force_Req", out_reg2_open, False)
+    modbus_set_output_register("Position_Req", Position_open, False)
+    
+    #Allow movement
+    modbus_set_output_signal("Go_to_Requested", True, False)
+    while(modbus_get_signal_status("Action_Status", False) == False):
+    sync()
+    end
+    
+    #Wait until the end of the movement
+    sleep(0.2)
+    while (not((modbus_get_signal_status("Obj_Det_Status1", False) == True) or (modbus_get_signal_status("Obj_Det_Status2", False) == True ))):
+    sleep(0.1)
+    sync()
+    end
+    
+    sleep(0.2)
+    #Status check object detection
+    global obj_detect1 = modbus_get_signal_status("Obj_Det_Status1",False)
+    global obj_detect2 = modbus_get_signal_status("Obj_Det_Status2",False)
+    if ((obj_detect1 == False) and (obj_detect2 == True)):
+    global Contact_opening = False
+    global Contact_closing = True
+    else:
+    if ((obj_detect1 == True) and (obj_detect2 == False)):
+    global Contact_opening = True
+    global Contact_closing = False
+    else:
+    global Contact_opening = False
+    global Contact_closing = False
+    end
+    end
+    
+    #Prohibit the movement
+    modbus_set_output_signal("Go_to_Requested", False, False)
+    while(modbus_get_signal_status("Action_Status", False) == True):
+    sync()
+    end
+  end
+  def SubP_RQ_2FG_Close():
+    global Position_close=255
+    global Speed_close=255
+    global Force_close=255
+    #Allocation of modbus output registers with the desired settings
+    out_reg2_close = Speed_close * 256 + Force_close
+    modbus_set_output_register("Speed_Force_Req", out_reg2_close, False)
+    modbus_set_output_register("Position_Req", Position_close, False)
+    
+    #Allow movement
+    modbus_set_output_signal("Go_to_Requested", True, False)
+    while(modbus_get_signal_status("Action_Status", False) == False):
+    sync()
+    end
+    
+    #Wait until the end of the movement
+    sleep(0.2)
+    while (not((modbus_get_signal_status("Obj_Det_Status1", False) == True) or (modbus_get_signal_status("Obj_Det_Status2", False) == True ))):
+    sleep(0.1)
+    sync()
+    end
+    
+    sleep(0.2)
+    #Status check object detection
+    global obj_detect1 = modbus_get_signal_status("Obj_Det_Status1",False)
+    global obj_detect2 = modbus_get_signal_status("Obj_Det_Status2",False)
+    if ((obj_detect1 == False) and (obj_detect2 == True)):
+    global Contact_opening = False
+    global Contact_closing = True
+    else:
+    if ((obj_detect1 == True) and (obj_detect2 == False)):
+    global Contact_opening = True
+    global Contact_closing = False
+    else:
+    global Contact_opening = False
+    global Contact_closing = False
+    end
+    end
+    
+    #Prohibit the movement
+    modbus_set_output_signal("Go_to_Requested", False, False)
+    while(modbus_get_signal_status("Action_Status", False) == True):
+    sync()
+    end
+  end
+  $ 1 "BeforeStart"
+  #Activation if not activated
+  if ((modbus_get_signal_status("Gripper_Status1", False) == False)  and (modbus_get_signal_status("Gripper_Status2", False) == False)):
+  modbus_set_output_signal("Activate", True, False)
+  end
+  
+  #Prohibit the movement
+  modbus_set_output_signal("Go_to_Requested", False, False)
+  while (modbus_get_signal_status("Action_Status", False) == True):
+  sync()
+  end
+  
+  #Awaiting the activation of the gripper
+  while (not(modbus_get_signal_status("Gripper_Status1", False) ==  True )):
+  sync()
+  end
+  while (not(modbus_get_signal_status("Gripper_Status2", False) ==  True )):
+  sync()
+  end
+  $ 3 "socket_ip≔'192.168.2.14'"
+  global socket_ip="192.168.2.14"
+  $ 4 "socket_port≔30000"
+  global socket_port=30000
+  $ 5 "socket_name≔'test'"
+  global socket_name="test"
+  $ 6 "request≔1"
+  global request=1
+  $ 7 "var_1≔socket_open(socket_ip,socket_port, socket_name)"
+  global var_1=socket_open(socket_ip,socket_port, socket_name)
+  $ 8 "MoveJ"
+  $ 9 "Waypoint_2"
+  movej([1.0016121337464958, -0.9991919483806173, -1.8133790370304563, -1.9008250676618044, 1.5591473517029932, 0.5012451104399376], a=1.3962634015954636, v=1.0471975511965976)
+  $ 10 "Loop var_1≟ False "
+  while (var_1 ==  False  ):
+    $ 11 "var_1≔socket_open(socket_ip, socket_port, socket_name)"
+    global var_1=socket_open(socket_ip, socket_port, socket_name)
+    $ 12 "Wait: 0.5"
+    sleep(0.5)
+  end
+  $ 13 "MoveJ"
+  $ 14 "Waypoint_1"
+  movej([0.5057076001752528, -1.0002240716872297, -1.8128345429638664, -1.9011693551804623, 1.5609938048354588, 0.49759705900160384], a=1.3962634015954636, v=1.0471975511965976)
+  $ 15 "p_origin≔get_actual_tcp_pose()"
+  global p_origin=get_actual_tcp_pose()
+  $ 26 "Robot Program"
+  $ 27 "socket_send_string(request, socket_name)"
+  socket_send_string(request, socket_name)
+  $ 29 "var_2≔socket_read_ascii_float(5, socket_name)"
+  global var_2=socket_read_ascii_float(5, socket_name)
+  $ 31 "If var_2[0]≠0"
+  if (var_2[0] !=0):
+    $ 32 "beginx≔-var_2[1]"
+    global beginx=-var_2[1]
+    $ 33 "beginz≔-var_2[2]"
+    global beginz=-var_2[2]
+    $ 34 "naaldafstand≔-var_2[3]"
+    global naaldafstand=-var_2[3]
+    $ 35 "nrnaalden≔var_2[4]"
+    global nrnaalden=var_2[4]
+    $ 36 "graden≔var_2[5]"
+    global graden=var_2[5]
+    $ 37 "ctr1≔0"
+    global ctr1=0
+    $ 38 "p_beginrel≔p[beginx, 0, beginz, 0, 0, 0]"
+    global p_beginrel=p[beginx, 0, beginz, 0, 0, 0]
+    $ 39 "p_nextx≔p[naaldafstand,0 ,0 ,0 ,0 ,0]"
+    global p_nextx=p[naaldafstand,0 ,0 ,0 ,0 ,0]
+    $ 40 "p_begin≔pose_trans(p_origin, p_beginrel)"
+    global p_begin=pose_trans(p_origin, p_beginrel)
+    $ 41 "p_n≔p_begin"
+    global p_n=p_begin
+    $ 42 "MoveL"
+    $ 43 "p_begin"
+    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], p_begin), a=1.2, v=0.25)
+    $ 44 "Loop ctr1<nrnaalden"
+    while (ctr1<nrnaalden):
+      $ 45 "MoveL"
+      $ 46 "p_n"
+      movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], p_n), a=1.2, v=0.25)
+      $ 47 "p_cur≔get_actual_tcp_pose()"
+      global p_cur=get_actual_tcp_pose()
+      $ 48 "p_n≔pose_trans(p_cur,p_nextx)"
+      global p_n=pose_trans(p_cur,p_nextx)
+      $ 49 "Wait: 1.0"
+      sleep(1.0)
+      $ 50 "ctr1≔ctr1+1"
+      global ctr1=ctr1+1
+    end
+    $ 51 "MoveL"
+    $ 52 "Waypoint_1"
+    movel([0.5057076001752528, -1.0002240716872297, -1.8128345429638664, -1.9011693551804623, 1.5609938048354588, 0.49759705900160384], a=1.2, v=0.25)
+    $ 53 "MoveJ"
+    $ 54 "Waypoint_2"
+    movej([1.0016121337464958, -0.9991919483806173, -1.8133790370304563, -1.9008250676618044, 1.5591473517029932, 0.5012451104399376], a=1.3962634015954636, v=1.0471975511965976)
+  end
+end
