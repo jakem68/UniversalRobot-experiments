@@ -104,9 +104,12 @@ print("Rx and Ry calculated")
 print(pos)
 print("Rx=", rx, ", Ry=", ry)
 
+print("here1")
 
 conn, addr = s.accept()
 print ('Connected with ' + addr[0] + ':' + str(addr[1]))
+
+print("here2")
 
 while 1:
     pos = queryMousePosition()
