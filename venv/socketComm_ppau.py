@@ -12,7 +12,7 @@ do this once
 '''
 ###############################################################
 # to allow for socket communication
-import socket, sys
+import socket, sys, queue, threading
 from list import *
 
 print(sys.version)
@@ -22,63 +22,60 @@ print(sys.version)
 
 
 def main():
-    conn = create_socket_connection()
+    HOST = ''  # Symbolic name meaning all available interfaces
+    PORT = 30000  # Arbitrary non-privileged port
+    q = queue.Queue()
+    thread_sock = threading.Thread(target=create_socket_connection, args=(HOST, PORT, q))
+    thread_sock.start()
+
+    # conn = q.get()
 
     leaks = List('leaks')
     while 1:
-        msg_in = conn.recv(1024)
-        msg_in_str = msg_in.decode()
-        if msg_in_str != '':
-            print(msg_in_str)
-            msg = evaluate_msg(msg_in_str)  # returns a 'type' and 'value' of the message
-            if msg['type'] == 'pose':
-                print('here', msg['value'])
-                leaks.store_item(msg['value'])
-            elif msg['type'] == 'request':
-                leaks.send_item(conn)
-            else:
-                print("message type of message: {} was not recognized", format(msg_in))
-
-            # msg komt binnen als : b'p(float1, float2, float3, float4, float5, float6)' request komt binnen als b'1'
-            # als er niets is komt b'' try the following: print (type(msg_in)) print (repr(msg_in)) print (
-            # msg_in.decode()) sending in byte format to UR as follows: mystring.encode('utf-8')
-
-        # if (pos != posprev) and (request == b'1'):
-        #     request = 0
-        #     CalculateRxRy()
-        #     print(pos)
-        #     print("Rx=", rx, ", Ry=", ry)
-        #     posprev = pos
-        #     URtarget = "(" + str(rx / -1000) + ", " + str(ry / -1000) + ")"
-        #     print(URtarget)
-        #     conn.sendall(URtarget.encode())
-        # time.sleep(0.1)
+        conn = q.get()
+        print(conn)
+        print("attaching to new connection")
+        while q.empty():
+            msg_in = conn.recv(1024)
+            msg_in_str = msg_in.decode()
+            if msg_in_str != '':
+                print(msg_in_str)
+                msg = evaluate_msg(msg_in_str)  # returns a 'type' and 'value' of the message
+                if msg['type'] == 'pose':
+                    print('here', msg['value'])
+                    leaks.store_item(msg['value'])
+                elif msg['type'] == 'request':
+                    leaks.send_item(conn)
+                else:
+                    print("message type of message: {0} was not recognized".format(msg_in))
+        conn.close()
 
     # close the connection and socket after talking to the client
-    conn.close()
     s.close()
 
 
-def create_socket_connection():
-    HOST = ''  # Symbolic name meaning all available interfaces
-    PORT = 30000  # Arbitrary non-privileged port
+def create_socket_connection(host, port, q):
     # open a socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Socket created")
     # bind socket to host and port, also catch exception.
     try:
-        s.bind((HOST, PORT))
+        s.bind((host, port))
     except socket.error as msg:
         print('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
         sys.exit()
     print('Socket bind complete')
     # start listening to the socket
-    s.listen(10)
-    print('Socket now listening')
-    # server keeps listening, program continues only when connection is made
-    conn, addr = s.accept()
-    print('Connected with ' + addr[0] + ':' + str(addr[1]))
-    return conn
+
+    while True:
+        s.listen(2)
+        print('Socket now listening')
+        # server keeps listening, program continues only when connection is made
+        conn, addr = s.accept()
+        print('Connected with ' + addr[0] + ':' + str(addr[1]))
+
+        # return conn
+        q.put(conn)
 
 
 # turns received txt msg into six floats to allow for calculations and then reformats the result to represent a clean
@@ -94,11 +91,13 @@ def convert_str_list_to_pose(str_list):
     # if necessary return float_list here
 
     # possibly do some calculations on floats in float_list here
+    # print(float_list[2])
+    # float_list[2] = float_list[2] - 0.2
+    # print(float_list[2])
 
     # convert recalculated floats back to list of strings
     for i in range(len(float_list)):
         str_list[i] = repr(float_list[i])
-        print(str_list[i])
 
     # make one string out of list of strings with the p[ and ] for UR
     pose_str = ",".join(str_list)
@@ -113,13 +112,13 @@ def convert_str_list_to_pose(str_list):
 #   1 item = request or maybe something else later
 def evaluate_msg(str_in):
     str_list = str_in.split(",")
-    print(str_list)
-    print(len(str_list))
+    #    print(str_list)
+    #    print(len(str_list))
     if len(str_list) == 6:
         pose = convert_str_list_to_pose(str_list)
         msg_type = "pose"
         msg = {"type": msg_type, "value": pose}
-        print(msg)
+        #        print(msg)
         return msg
     if len(str_list) == 1:
         msg_type = "request"

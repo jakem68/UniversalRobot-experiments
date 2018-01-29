@@ -9,10 +9,12 @@ class List:
         pass
 
     def send_item(self, socket):
-        this_pose = self.poses.pop()
-        if this_pose != '':
-            socket.sendall(this_pose.encode('utf-8'))
-            print("item sent to socket")
-        else:
+        try:
+            this_item = self.items.pop()
+            socket.sendall(this_item.encode('utf-8'))
+            print("item {0} sent to socket".format(this_item.encode('utf-8')))
+        except:
             print("List is empty")
+            socket.sendall("EOF".encode('utf-8'))
+            pass
         pass
