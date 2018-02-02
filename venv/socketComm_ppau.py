@@ -35,6 +35,8 @@ def main():
         conn = q.get()
         print(conn)
         print("attaching to new connection")
+        leak_btn_state = False # checks whether a state was sent before a pose is sent
+        leak_flag_value = 0
         while q.empty():
             msg_in = conn.recv(1024)
             msg_in_str = msg_in.decode()
@@ -42,10 +44,22 @@ def main():
                 print(msg_in_str)
                 msg = evaluate_msg(msg_in_str)  # returns a 'type' and 'value' of the message
                 if msg['type'] == 'pose':
-                    print('here', msg['value'])
-                    leaks.store_item(msg['value'])
+                    if leak_btn_state == True:
+                        print('here', msg['value'])
+                        msg['value'] = "("+msg['value']+","+str(leak_flag_value)+")"
+                        print('here again', msg['value'])
+                        leaks.store_item(msg['value'])
+                        leak_btn_state = False
+                    else:
+                        print('Pose received but no corresponding state of the pose received. Pose disregarded')
+                elif msg['type'] == 'leak_flag':
+                    if msg['value'] == 'leak':
+                        leak_flag_value = 1
+                    else: leak_flag_value = 0
+                    leak_btn_state = True
                 elif msg['type'] == 'request':
                     leaks.send_item(conn)
+                    leak_btn_state = False
                 else:
                     print("message type of message: {0} was not recognized".format(msg_in))
         conn.close()
@@ -78,6 +92,34 @@ def create_socket_connection(host, port, q):
         q.put(conn)
 
 
+# evaluation of list momentarily purely on number of items in the list:
+#   6 items = pose
+#   1 item = request or maybe something else later
+def evaluate_msg(str_in):
+    str_list = str_in.split(",")
+    #    print(str_list)
+    #    print(len(str_list))
+    if len(str_list) == 6:
+        pose = convert_str_list_to_pose(str_list)
+        msg_type = "pose"
+        msg = {"type": msg_type, "value": pose}
+        #        print(msg)
+        return msg
+    if len(str_list) == 1:
+        if str_list[0]=="request_pose":
+#            msg_type = "request"
+            msg = {"type": 'request', "value": str_list[0]}
+        elif str_list[0]=="leak":
+            msg = {"type": 'leak_flag', "value": str_list[0]}
+        elif str_list[0]=="no_leak":
+            msg = {"type": 'leak_flag', "value": str_list[0]}
+        else:
+            print('message not understood.')
+        return msg
+
+    return True
+
+
 # turns received txt msg into six floats to allow for calculations and then reformats the result to represent a clean
 #  pose string format for UR
 def convert_str_list_to_pose(str_list):
@@ -101,31 +143,10 @@ def convert_str_list_to_pose(str_list):
 
     # make one string out of list of strings with the p[ and ] for UR
     pose_str = ",".join(str_list)
-    pose_str = "p[" + pose_str + "]"
+#    pose_str = "p[" + pose_str + "]"
     # print ("pose_str is: {}".format(pose_str))
 
     return pose_str
-
-
-# evaluation of list momentarily purely on number of items in the list:
-#   6 items = pose
-#   1 item = request or maybe something else later
-def evaluate_msg(str_in):
-    str_list = str_in.split(",")
-    #    print(str_list)
-    #    print(len(str_list))
-    if len(str_list) == 6:
-        pose = convert_str_list_to_pose(str_list)
-        msg_type = "pose"
-        msg = {"type": msg_type, "value": pose}
-        #        print(msg)
-        return msg
-    if len(str_list) == 1:
-        msg_type = "request"
-        msg = {"type": msg_type, "value": 'request'}
-        return msg
-
-    return True
 
 
 if __name__ == "__main__":

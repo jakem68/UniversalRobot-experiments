@@ -10,7 +10,7 @@ class List:
 
     def send_item(self, socket):
         try:
-            this_item = self.items.pop()
+            this_item = self.items.pop(0)
             socket.sendall(this_item.encode('utf-8'))
             print("item {0} sent to socket".format(this_item.encode('utf-8')))
         except:
