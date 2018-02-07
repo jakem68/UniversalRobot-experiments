@@ -18,3 +18,24 @@ class List:
             socket.sendall("EOF".encode('utf-8'))
             pass
         pass
+
+    def send_nr_leaks(self, socket):
+        nr_leaks = 0
+        try:
+            for item in self.items:
+                this_valuelist_str = item.split(",")
+                this_value_leakstatus = this_valuelist_str[6][:-1]
+                if this_value_leakstatus == "1":
+                    print("leak found")
+                    nr_leaks += 1
+            print("just before sending")
+            str_nr_leaks = "("+str(nr_leaks)+")"
+            print(str_nr_leaks)
+            socket.sendall(str_nr_leaks.encode('utf-8'))
+            print("nr_leaks found is {0}".format(str(nr_leaks).encode('utf-8')))
+        except:
+            print("List is empty")
+            socket.sendall("EOF".encode('utf-8'))
+            pass
+        pass
+

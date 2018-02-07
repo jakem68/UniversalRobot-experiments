@@ -45,9 +45,11 @@ def main():
                 msg = evaluate_msg(msg_in_str)  # returns a 'type' and 'value' of the message
                 if msg['type'] == 'pose':
                     if leak_btn_state == True:
-                        print('here', msg['value'])
+
+#                        hier zit het probleem: msg['value'] is een lijst van 6 strings en hier voeg ik een haakje van voor en van achter met een zevende string aan toe --> wss is beter gewoon append zevende item aan msg['value']
                         msg['value'] = "("+msg['value']+","+str(leak_flag_value)+")"
-                        print('here again', msg['value'])
+                        print(msg['value'])
+                        print(type(msg['value']))
                         leaks.store_item(msg['value'])
                         leak_btn_state = False
                     else:
@@ -58,8 +60,12 @@ def main():
                     else: leak_flag_value = 0
                     leak_btn_state = True
                 elif msg['type'] == 'request':
-                    leaks.send_item(conn)
-                    leak_btn_state = False
+                    if msg['value'] == "request_pose":
+                        leaks.send_item(conn)
+                        leak_btn_state = False
+                    elif msg['value'] == "request_leaks":
+                        leaks.send_nr_leaks(conn)
+                        leak_btn_state = False
                 else:
                     print("message type of message: {0} was not recognized".format(msg_in))
         conn.close()
@@ -108,6 +114,8 @@ def evaluate_msg(str_in):
     if len(str_list) == 1:
         if str_list[0]=="request_pose":
 #            msg_type = "request"
+            msg = {"type": 'request', "value": str_list[0]}
+        elif str_list[0]=="request_leaks":
             msg = {"type": 'request', "value": str_list[0]}
         elif str_list[0]=="leak":
             msg = {"type": 'leak_flag', "value": str_list[0]}
