@@ -1,4 +1,7 @@
-class List:
+import tempfile, time, os
+import json
+
+class List():
 
     def __init__(self, name):
         self.name = name
@@ -20,6 +23,22 @@ class List:
         pass
 
     def send_nr_leaks(self, socket):
+        # create json format of list
+        json_list = json.dumps(self.items)
+
+        # create filename
+        ts = time.strftime("%Y%m%d-%H%M%S")
+        filename = 'leakRecording'+ts+'.txt'
+        tempdir = tempfile.gettempdir()
+        file = os.path.join(os.path.sep, tempdir, filename)
+        print(file)
+
+        # write json format list to file
+        f = open('%s' % file, 'w')
+        f.write(json_list)
+        f.close()
+
+        # start counting the leaks
         nr_leaks = 0
         try:
             for item in self.items:

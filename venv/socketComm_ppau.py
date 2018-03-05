@@ -30,8 +30,8 @@ def main():
 
     # conn = q.get()
 
-    leaks = List('leaks')
     while 1:
+        leaks = List('leaks')
         conn = q.get()
         print(conn)
         print("attaching to new connection")
