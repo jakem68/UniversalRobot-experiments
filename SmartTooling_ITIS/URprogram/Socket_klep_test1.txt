@@ -1,0 +1,136 @@
+ Program
+   BeforeStart
+     socket_ip≔"10.32.3.54"
+     'socket_ip≔"192.168.2.14"'
+     socket_port≔30000
+     socket_name≔"test"
+     request_pose≔"request_pose"
+     request_leaks≔"request_leaks"
+     eof≔ False 
+     'Gripper Close'
+     recording≔ False 
+     Taster_Picked≔0
+     Drop_off≔0
+   Robot Program
+     var_1≔socket_open(socket_ip,socket_port, socket_name)
+     MoveJ
+       home
+     Loop var_1≟ False 
+       var_1≔socket_open(socket_ip,socket_port, socket_name)
+       Wait: 0.5
+     MoveJ
+       socket_OK
+     Popup
+     'Loop var_1≟ False '
+     If Taster_Picked≟0
+       'Gripper Open'
+       Gripper Move 39%
+       'MoveJ'
+       MoveL
+         Pick_taster_abo
+         Pick_taster
+         'Gripper Close'
+         Gripper Move 56%
+         Pick_taster_abo
+       Taster_Picked≔1
+     Else
+       If Drop_off≟1
+         'MoveJ'
+         MoveL
+           Pick_taster_abo
+           Pick_taster
+           Gripper Move 39%
+           Pick_taster_abo
+         'MoveJ'
+         MoveJ
+           Home
+         Halt
+     MoveJ
+       'To_P1'
+       To_P1_test
+     recording≔ True 
+     MoveP
+       P1
+       'Call send_pos_leak'
+       CircleMove
+         P2
+         P3
+       CircleMove
+         T1
+         T2
+       CircleMove
+         T3
+         T4
+       'Call send_pos_leak'
+       Back1
+     MoveJ
+       To_P4
+     MoveP
+       P4
+       CircleMove
+         P5
+         P6
+       'CircleMove'
+       Back_P8
+     recording≔ False 
+     Wait: 1.0
+     'Popup'
+     MoveJ
+       home
+     socket_send_string(request_leaks, socket_name)
+     Wait: 0.1
+     s_str≔socket_read_ascii_float(7, socket_name)
+     nr_leaks≔s_str[1]
+     Popup
+     MoveJ
+       'To_P1'
+       To_P1_test
+     Loop eof≟ False 
+       Call get_pose
+     'Loop s_str[0]≟0'
+     socket_close(socket_name="test")
+     MoveJ
+       home
+   get_pose
+     socket_send_string(request_pose, socket_name)
+     s_str≔socket_read_ascii_float(7, socket_name)
+     var_3≔s_str[0]
+     var_4≔s_str[1]
+     If s_str[0]≟7
+       this_wp≔p[s_str[1], s_str[2], s_str[3], s_str[4], s_str[5], s_str[6]]
+       'MoveJ'
+       'var_2≔get_forward_kin()'
+       tool_offset≔p[0,0,-0.01,0,0,0]
+       this_wp≔pose_trans(this_wp, tool_offset)
+       MoveP
+         this_wp
+       'Wait: 1.0'
+       If s_str[7]≟1
+         Popup
+     If s_str[0]≟0
+       Popup
+       eof≔ True 
+   send_pos_leak
+     'this_wp≔get_actual_tcp_pose()'
+     this_wp≔get_forward_kin()
+     leak_flag≔"leak"
+     socket_send_string(leak_flag, socket_name)
+     socket_send_string(this_wp, socket_name)
+   send_pos_no_lea
+     'this_wp≔get_actual_tcp_pose()'
+     this_wp≔get_forward_kin()
+     leak_flag≔"no_leak"
+     socket_send_string(leak_flag, socket_name)
+     Wait: 0.02
+     socket_send_string(this_wp, socket_name)
+   Thread_1
+     Loop
+       If digital_in[4]≟ True 
+         Call send_pos_leak
+       btnState≔digital_in[4]
+       Wait btnState≠digital_in[4]
+   Thread_2
+     Loop
+       Wait: 0.25
+       If recording≟ True 
+         Call send_pos_no_lea
