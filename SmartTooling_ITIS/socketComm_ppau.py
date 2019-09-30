@@ -20,8 +20,10 @@ print(sys.version)
 
 ###############################################################
 
-
 def main():
+    run()
+
+def run():
     HOST = ''  # Symbolic name meaning all available interfaces
     PORT = 30000  # Arbitrary non-privileged port
     q = queue.Queue()

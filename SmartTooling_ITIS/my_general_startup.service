@@ -1,0 +1,13 @@
+[Unit]
+Description=user pi start general services in different threads
+After=network.target
+
+[Service]
+WorkingDirectory=/home/pi
+Type=idle
+User=pi
+ExecStart=/usr/bin/python /media/usb/general_startup.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
